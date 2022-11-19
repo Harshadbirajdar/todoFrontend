@@ -1,59 +1,52 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Button from "../components/Button";
-import Input from "../components/Input";
-import { addTodo, deleteTodo, getAllTodo } from "../service/todo";
+import { Todo } from "..";
+import Button from "../../components/Button";
+import Input from "../../components/Input";
+import { addTask, deleteTask, getTodoById } from "../../service/todo";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-export interface Todo {
-  title: string;
-  tasks: [];
-  _id: string;
-}
-const Home = () => {
+const Todo = () => {
   const router = useRouter();
   const {
     register,
-    handleSubmit,
-    reset,
     formState: { errors },
+    reset,
+    handleSubmit,
   } = useForm({
     defaultValues: {
-      title: "",
+      task: "",
     },
   });
-  const [todo, setTodos] = useState<Todo[]>([]);
+  const [data, setData] = useState<Todo>({ tasks: [], title: "", _id: "" });
+  const { id } = router.query;
   useEffect(() => {
-    getTodos();
-  }, []);
+    id && getTodo();
+  }, [id]);
 
-  const getTodos = () => {
-    getAllTodo().then((response) => {
-      if (response.data.success) {
-        console.log(response.data);
-        const { data } = response.data;
-        setTodos(data.todo);
-      }
+  const getTodo = () => {
+    getTodoById(id).then((response) => {
+      if (response.data.success) setData(response.data.data);
     });
   };
 
-  const onAddClick = (data: { title: string }) => {
-    addTodo(data.title).then((response) => {
+  const onAddClick = (data: { task: string }) => {
+    addTask(id, data.task).then((response) => {
       toast.success(response.data.message);
-      getTodos();
+      getTodo();
       reset();
     });
   };
 
-  const onDeleteClick = (id: string) => {
-    const result = confirm("Are you sure to delete todo");
+  const onDeleteClick = (task: string) => {
+    const result = confirm("Are you sure to delete Task");
     if (!result) return;
-    deleteTodo(id).then((response) => {
+    deleteTask(id, task).then((response) => {
       const { data } = response;
       if (data.success) {
         toast.success(data.message);
-        getTodos();
+        getTodo();
       }
     });
   };
@@ -67,20 +60,40 @@ const Home = () => {
 
       <div className="flex justify-center items-center min-h-screen  bg-[#cbd7e3]">
         <div className="h-[80vh]  w-96 bg-white rounded-lg px-6 py-10">
-          <p className="text-xl font-semibold mt-2 text-[#063c76]">
-            To-do List
-          </p>
+          <div className="flex items-center">
+            <svg
+              onClick={() => {
+                router.push("/");
+              }}
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5 cursor-pointer"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+              />
+            </svg>
+
+            <p className="text-xl font-semibold ml-3 text-[#063c76]">
+              {data.title}
+            </p>
+          </div>
           <div className="flex justify-between items-center mt-3">
             <Input
-              {...register("title", {
+              {...register("task", {
                 required: {
                   value: true,
-                  message: "Please enter a Todo Title",
+                  message: "Please enter a task",
                 },
               })}
-              wrapperClass="w-[87%]"
-              label="Add New Todo"
-              error={errors.title?.message}
+              error={errors.task?.message}
+              wrapperClass=" w-[87%]"
+              label="Add New Task"
             />
             <Button
               className="w-auto !p-2 rounded-full "
@@ -104,22 +117,19 @@ const Home = () => {
           </div>
           <div className="w-full mt-4 flex text-sm flex-col text-center justify-center "></div>
           <ul className="my-4 h-[80%] overflow-y-scroll">
-            {todo.map((todo) => (
-              <li
-                onClick={() => {
-                  router.push(`/todo/${todo._id}`);
-                }}
-                className=" cursor-pointer mt-4"
-                key={todo._id}
-              >
-                <div className=" h-12 bg-[#e0ebff] rounded-[7px] flex justify-between items-center px-3">
-                  {todo.title}
+            <li className=" mt-4">
+              {data.tasks?.map((todo, index) => (
+                <div
+                  key={index}
+                  className=" h-12 mb-2 bg-[#e0ebff] rounded-[7px] flex justify-between items-center px-3"
+                >
+                  {todo}
                   <div
-                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteClick(todo._id);
+                      onDeleteClick(todo);
                     }}
+                    className="cursor-pointer"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -137,8 +147,8 @@ const Home = () => {
                     </svg>
                   </div>
                 </div>
-              </li>
-            ))}
+              ))}
+            </li>
           </ul>
         </div>
       </div>
@@ -146,4 +156,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Todo;
